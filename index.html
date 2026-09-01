@@ -82,7 +82,7 @@ scene.add(light);
 const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
 scene.add(grid);
 
-// --- 2. PARTS DATA (12 STEPS COMPLETE) ---
+// --- 2. PARTS DATA ---
 const assemblySteps = [
     { key: 'chassis', name: 'Chassis (แชสซี)', items: [
         { name: 'AR Chassis', speed: 5, accel: 6, weight: 15, stab: 7, color: 0x222222 },
@@ -235,7 +235,7 @@ function updateCarModel(key, item) {
     }
 }
 
-// --- 4. TRACK & RACE SYSTEM (สร้างตามรูปถ่ายใหม่) ---
+// --- 4. TRACK & RACE SYSTEM ---
 let isRacingMode = false;
 let isRunning = false;
 let progress = 0;
@@ -244,30 +244,45 @@ let startTime = 0;
 let elapsedTime = 0;
 let raceTimer = null;
 
-// พิกัดสนามอ้างอิงจากรูปถ่ายใบใหม่ (มีทางตรงหน้า, S-Curve ซ้าย, สะพานกลางขวา)
 const trackPoints = [
-    new THREE.Vector3(-12, 0,  7),
-    new THREE.Vector3(  0, 0,  7),
-    new THREE.Vector3( 12, 0,  7), // ทางตรงยาวด้านหน้า
-    new THREE.Vector3( 14, 0,  3),
-    new THREE.Vector3( 10, 0, -2), // โค้งอ้อมขวา
-    new THREE.Vector3(  3, 1.5, -2), // สะพานยกระดับ
-    new THREE.Vector3( -3, 0, -2), 
-    new THREE.Vector3( -8, 0, -6), // S-Curve ด้านซ้าย
+    new THREE.Vector3(-12, 0, 7),
+    new THREE.Vector3(0, 0, 7),
+    new THREE.Vector3(12, 0, 7),
+    new THREE.Vector3(14, 0, 3),
+    new THREE.Vector3(10, 0, -2),
+    new THREE.Vector3(3, 1.5, -2),
+    new THREE.Vector3(-3, 0, -2), 
+    new THREE.Vector3(-8, 0, -6),
     new THREE.Vector3(-12, 0, -2),
-    new THREE.Vector3( -5, 0,  2),
-    new THREE.Vector3(  5, 0, -8),
-    new THREE.Vector3( 12, 0, -8), // ลูปด้านหลัง
-    new THREE.Vector3( 14, 0, -2),
-    new THREE.Vector3(-14, 0,  2)  // วนกลับเข้าเส้นชัย
+    new THREE.Vector3(-5, 0, 2),
+    new THREE.Vector3(5, 0, -8),
+    new THREE.Vector3(12, 0, -8),
+    new THREE.Vector3(14, 0, -2),
+    new THREE.Vector3(-14, 0, 2)
 ];
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.8, 8, false);
+const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.8, 8, true);
 const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xdcdcdc, roughness: 0.4 }));
 trackMesh.scale.set(1, 0.12, 1);
 trackMesh.visible = false;
 scene.add(trackMesh);
+
+const currentPos = new THREE.Vector3();
+const targetPos = new THREE.Vector3();
+const upVector = new THREE.Vector3(0, 1, 0);
+
+function setCarOnTrack(p) {
+    trackCurve.getPointAt(p, currentPos);
+    trackCurve.getPointAt((p + 0.003) % 1, targetPos);
+
+    currentPos.y = currentPos.y * 0.12 + 0.12;
+    targetPos.y = targetPos.y * 0.12 + 0.12;
+
+    carGroup.position.copy(currentPos);
+    carGroup.up.copy(upVector);
+    carGroup.lookAt(targetPos);
+}
 
 function startRaceMode() {
     isRacingMode = true;
@@ -278,10 +293,15 @@ function startRaceMode() {
     grid.visible = false;
     trackMesh.visible = true;
     
-    // ตั้งค่ามุมกล้องเป็น TOP VIEW (มองตรงลงมาจากด้านบน)
-    camera.position.set(0, 32, 0.1);
+    // วางรถตรงจุด Start ทันที
+    progress = 0;
+    setCarOnTrack(0);
+
+    // ตั้งค่ามุมกล้อง Top View
+    camera.position.set(0, 35, 0.1);
     controls.target.set(0, 0, 0);
-    controls.enableRotate = false; // ล็อคมุมกล้องให้อยู่ใน Top View ตลอดเวลา
+    controls.enableRotate = false;
+    controls.update();
 }
 
 function resetGame() {
@@ -295,7 +315,13 @@ function toggleRun() {
     if (isRunning) {
         btn.innerText = "หยุดรถ";
         btn.style.background = "#ff9800";
-        if(lap >= 3) { lap = 0; progress = 0; elapsedTime = 0; }
+        if (lap >= 3) { 
+            lap = 0; 
+            progress = 0; 
+            elapsedTime = 0; 
+            document.getElementById('timer').innerText = "00:00:00";
+        }
+        document.getElementById('lap-counter').innerText = `Lap: ${lap} / 3`;
         startTime = Date.now() - elapsedTime;
         raceTimer = setInterval(updateTimer, 10);
     } else {
@@ -315,10 +341,6 @@ function updateTimer() {
 }
 
 // --- 5. ANIMATION LOOP ---
-const currentPos = new THREE.Vector3();
-const targetPos = new THREE.Vector3();
-const upVector = new THREE.Vector3(0, 1, 0);
-
 function animate() {
     requestAnimationFrame(animate);
 
@@ -340,15 +362,7 @@ function animate() {
             }
         }
 
-        trackCurve.getPointAt(progress, currentPos);
-        trackCurve.getPointAt((progress + 0.003) % 1, targetPos);
-
-        currentPos.y += 0.12;
-        targetPos.y += 0.12;
-
-        carGroup.position.copy(currentPos);
-        carGroup.up.copy(upVector);
-        carGroup.lookAt(targetPos);
+        setCarOnTrack(progress);
     }
 
     controls.update();
