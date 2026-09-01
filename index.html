@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya JCJC Track Simulation - Perfect Version</title>
+    <title>Tamiya JCJC Track Simulation - Fixed</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; }
         #canvas-container { width: 100vw; height: 100vh; }
@@ -81,23 +81,26 @@ const trackPoints = [
 
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-// --- 3. สร้างแผ่นพื้นราง 3D (Ribbon Track Geometry) ---
-const trackSegments = 200;
+// --- 3. สร้างแผ่นพื้นราง 3D (คำนวณเอียงตามความชันสะพาน) ---
+const trackSegments = 300;
 const trackWidth = 1.6;
 const trackGeometry = new THREE.BufferGeometry();
 const positions = [];
 const indices = [];
 
+// ดึง Frenet Frames เพื่อหา Normal/Binormal ของรางที่ถูกต้อง
+const frenzyFrames = trackCurve.computeFrenetFrames(trackSegments, true);
+
 for (let i = 0; i <= trackSegments; i++) {
-    const t = i / trackSegments;
-    const pt = trackCurve.getPointAt(t);
-    const tan = trackCurve.getTangentAt(t);
+    const u = i / trackSegments;
+    const pt = trackCurve.getPointAt(u);
+    const binormal = frenzyFrames.binormals[i % trackSegments];
     
-    // เวกเตอร์ตั้งฉากเพื่อขยายเป็นความกว้างราง
-    const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize().multiplyScalar(trackWidth / 2);
+    // คำนวณขอบซ้าย-ขวา โดยใช้อ้างอิงตาม Binormal ของ Curve
+    const side = binormal.clone().multiplyScalar(trackWidth / 2);
     
-    positions.push(pt.x + side.x, pt.y, pt.z + side.z);
-    positions.push(pt.x - side.x, pt.y, pt.z - side.z);
+    positions.push(pt.x + side.x, pt.y + side.y, pt.z + side.z);
+    positions.push(pt.x - side.x, pt.y - side.y, pt.z - side.z);
 
     if (i < trackSegments) {
         const base = i * 2;
@@ -118,15 +121,16 @@ const trackMaterial = new THREE.MeshStandardMaterial({
 const trackMesh = new THREE.Mesh(trackGeometry, trackMaterial);
 scene.add(trackMesh);
 
-// --- 4. สร้างตัวรถ Tamiya ---
+// --- 4. สร้างตัวรถ Tamiya (จัดGroupให้มุ่งหน้าถูกต้อง) ---
 const carGroup = new THREE.Group();
+const carModel = new THREE.Group(); // Sub-group สำหรับปรับแก้ Direction
 
 // บอดี้รถ
 const bodyGeo = new THREE.BoxGeometry(0.7, 0.25, 1.2);
 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, metalness: 0.2, roughness: 0.3 });
 const body = new THREE.Mesh(bodyGeo, bodyMat);
 body.position.y = 0.2;
-carGroup.add(body);
+carModel.add(body);
 
 // ล้อรถ 4 ล้อ
 const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 16);
@@ -143,9 +147,12 @@ wheelPos.forEach(p => {
     const w = new THREE.Mesh(wheelGeo, wheelMat);
     w.rotation.z = Math.PI / 2;
     w.position.set(...p);
-    carGroup.add(w);
+    carModel.add(w);
 });
 
+// หมุน 180 องศาเพื่อแก้ปัญหาเดินหน้า-ถอยหลัง
+carModel.rotation.y = Math.PI; 
+carGroup.add(carModel);
 scene.add(carGroup);
 
 // --- 5. ระบบขับเคลื่อนรถตามเส้นทาง ---
@@ -164,15 +171,15 @@ function animate() {
         progress += speed;
         if (progress > 1) progress -= 1;
 
-        // คำนวณตำแหน่งปัจจุบัน และตำแหน่งข้างหน้าเล็กน้อยเพื่อวางทิศทางหน้ารถ
+        // ดึงตำแหน่งปัจจุบันและตำแหน่งถัดไปบน Curve
         const currentPos = trackCurve.getPointAt(progress);
-        const futurePos = trackCurve.getPointAt((progress + 0.005) % 1);
+        const futurePos = trackCurve.getPointAt((progress + 0.003) % 1);
 
-        // วางรถสูงจากแผ่นรางเล็กน้อย
-        carGroup.position.set(currentPos.x, currentPos.y + 0.05, currentPos.z);
+        // ยกระดับตำแหน่งรถให้ล้อแตะบนพื้นรางพอดี
+        carGroup.position.set(currentPos.x, currentPos.y + 0.02, currentPos.z);
         
-        // หันหน้ารถไปยังจุดถัดไปบนราง
-        carGroup.lookAt(futurePos.x, futurePos.y + 0.05, futurePos.z);
+        // หันหน้ารถไปยังพิกัดถัดไป
+        carGroup.lookAt(futurePos.x, futurePos.y + 0.02, futurePos.z);
     }
 
     controls.update();
@@ -185,7 +192,6 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// เริ่มทำงาน
 animate();
 </script>
 </body>
