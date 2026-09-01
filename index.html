@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya Mini 4WD Full Custom Builder & Racer</title>
+    <title>Tamiya Mini 4WD Full Custom - Top View Track</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; user-select: none; }
         #canvas-container { width: 100vw; height: 100vh; }
@@ -29,14 +29,14 @@
 </head>
 <body>
 
-    <!-- UI โรงงานแต่งรถ (Garage UI) -->
+    <!-- UI Garage Builder -->
     <div id="parts-selector" class="ui-panel">
         <h3>Garage Builder</h3>
         <div id="step-desc" class="step-title">ขั้นตอนที่ 1: เลือก Chassis</div>
         <div id="options-list"></div>
     </div>
 
-    <!-- UI แสดงค่าสเตตัสรถ -->
+    <!-- UI Stats Panel -->
     <div id="stats-panel" class="ui-panel">
         <h3>Car Stats</h3>
         <div class="stat-bar">Speed: <span id="st-speed" class="stat-val">0</span></div>
@@ -47,7 +47,7 @@
         <button id="go-race-btn" class="btn-action" style="width: 100%; display: none;" onclick="startRaceMode()">เข้าสู่สนามแข่ง!</button>
     </div>
 
-    <!-- UI โหมดแข่งขัน -->
+    <!-- UI Race Control -->
     <div id="race-ui" class="ui-panel">
         <h2 style="margin: 0 0 5px 0; color: #00e676; font-family: monospace; font-size: 2rem;" id="timer">00:00:00</h2>
         <div id="lap-counter" style="margin-bottom: 10px; font-weight: bold;">Lap: 0 / 3</div>
@@ -82,7 +82,7 @@ scene.add(light);
 const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
 scene.add(grid);
 
-// --- 2. FULL PARTS DATA (12 STEPS) ---
+// --- 2. PARTS DATA (12 STEPS COMPLETE) ---
 const assemblySteps = [
     { key: 'chassis', name: 'Chassis (แชสซี)', items: [
         { name: 'AR Chassis', speed: 5, accel: 6, weight: 15, stab: 7, color: 0x222222 },
@@ -106,7 +106,7 @@ const assemblySteps = [
         { name: 'Plastic Bushings', speed: 1, accel: 1, weight: 1, stab: 0, color: 0x888888 },
         { name: 'HG Ball Bearings 620', speed: 6, accel: 5, weight: 3, stab: 2, color: 0x00e676 }
     ]},
-    { key: 'wheels', name: 'Wheels (แม็ก/ล้อ)', items: [
+    { key: 'wheels', name: 'Wheels (ล้อ)', items: [
         { name: 'Small Dia. Dish Wheels', speed: 2, accel: 8, weight: 6, stab: 4, color: 0xffffff },
         { name: 'Large Dia. Narrow Wheels', speed: 8, accel: 2, weight: 8, stab: 1, color: 0xffb300 }
     ]},
@@ -129,7 +129,7 @@ const assemblySteps = [
     ]},
     { key: 'damper', name: 'Brake Pad / Damper (แผ่นแบก/เบรก)', items: [
         { name: 'No Brake', speed: 3, accel: 2, weight: 0, stab: -1, color: 0x000000 },
-        { name: 'Sponge Brake Sponge (Blue)', speed: -1, accel: 0, weight: 1, stab: 8, color: 0x1e88e5 }
+        { name: 'Sponge Brake Pad (Blue)', speed: -1, accel: 0, weight: 1, stab: 8, color: 0x1e88e5 }
     ]},
     { key: 'body', name: 'Body Shell (บอดี้)', items: [
         { name: 'Avante Mk.III', speed: 4, accel: 2, weight: 12, stab: 2, color: 0x1976d2 },
@@ -198,17 +198,15 @@ function updateCarModel(key, item) {
         mMesh.position.set(0, 0.25, -0.2);
         carGroup.add(mMesh);
     }
-    else if (key === 'wheels' || key === 'tires') {
-        if (key === 'wheels') {
-            const wGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 16);
-            const wMat = new THREE.MeshStandardMaterial({ color: item.color });
-            [[-0.45, 0.25, 0.5], [0.45, 0.25, 0.5], [-0.45, 0.25, -0.5], [0.45, 0.25, -0.5]].forEach(p => {
-                const w = new THREE.Mesh(wGeo, wMat);
-                w.rotation.z = Math.PI / 2;
-                w.position.set(...p);
-                carGroup.add(w);
-            });
-        }
+    else if (key === 'wheels') {
+        const wGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 16);
+        const wMat = new THREE.MeshStandardMaterial({ color: item.color });
+        [[-0.45, 0.25, 0.5], [0.45, 0.25, 0.5], [-0.45, 0.25, -0.5], [0.45, 0.25, -0.5]].forEach(p => {
+            const w = new THREE.Mesh(wGeo, wMat);
+            w.rotation.z = Math.PI / 2;
+            w.position.set(...p);
+            carGroup.add(w);
+        });
     }
     else if (key === 'plates') {
         const pGeo = new THREE.BoxGeometry(1.4, 0.05, 0.2);
@@ -237,7 +235,7 @@ function updateCarModel(key, item) {
     }
 }
 
-// --- 4. TRACK & RACE SYSTEM ---
+// --- 4. TRACK & RACE SYSTEM (สร้างตามรูปถ่ายใหม่) ---
 let isRacingMode = false;
 let isRunning = false;
 let progress = 0;
@@ -246,30 +244,28 @@ let startTime = 0;
 let elapsedTime = 0;
 let raceTimer = null;
 
+// พิกัดสนามอ้างอิงจากรูปถ่ายใบใหม่ (มีทางตรงหน้า, S-Curve ซ้าย, สะพานกลางขวา)
 const trackPoints = [
-    new THREE.Vector3(-10, 0,  8),
-    new THREE.Vector3(  0, 0,  8),
-    new THREE.Vector3( 10, 0,  8),
-    new THREE.Vector3( 13, 0,  4),
-    new THREE.Vector3( 11, 0, -2),
-    new THREE.Vector3(  5, 0,  0),
-    new THREE.Vector3(  0, 0, -3),
-    new THREE.Vector3( -5, 0,  0),
-    new THREE.Vector3(-11, 0, -4),
-    new THREE.Vector3(-10, 0, -9),
-    new THREE.Vector3(  0, 0, -9),
-    new THREE.Vector3(  6, 0.0, -9),
-    new THREE.Vector3(  8, 1.5, -8.5),
-    new THREE.Vector3( 10, 0.0, -8),
-    new THREE.Vector3( 12, 0, -4),
-    new THREE.Vector3(  8, 0,  3),
-    new THREE.Vector3(-12, 0,  4)
+    new THREE.Vector3(-12, 0,  7),
+    new THREE.Vector3(  0, 0,  7),
+    new THREE.Vector3( 12, 0,  7), // ทางตรงยาวด้านหน้า
+    new THREE.Vector3( 14, 0,  3),
+    new THREE.Vector3( 10, 0, -2), // โค้งอ้อมขวา
+    new THREE.Vector3(  3, 1.5, -2), // สะพานยกระดับ
+    new THREE.Vector3( -3, 0, -2), 
+    new THREE.Vector3( -8, 0, -6), // S-Curve ด้านซ้าย
+    new THREE.Vector3(-12, 0, -2),
+    new THREE.Vector3( -5, 0,  2),
+    new THREE.Vector3(  5, 0, -8),
+    new THREE.Vector3( 12, 0, -8), // ลูปด้านหลัง
+    new THREE.Vector3( 14, 0, -2),
+    new THREE.Vector3(-14, 0,  2)  // วนกลับเข้าเส้นชัย
 ];
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.7, 8, false);
-const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3 }));
-trackMesh.scale.set(1, 0.15, 1);
+const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.8, 8, false);
+const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xdcdcdc, roughness: 0.4 }));
+trackMesh.scale.set(1, 0.12, 1);
 trackMesh.visible = false;
 scene.add(trackMesh);
 
@@ -282,8 +278,10 @@ function startRaceMode() {
     grid.visible = false;
     trackMesh.visible = true;
     
-    camera.position.set(0, 25, 25);
+    // ตั้งค่ามุมกล้องเป็น TOP VIEW (มองตรงลงมาจากด้านบน)
+    camera.position.set(0, 32, 0.1);
     controls.target.set(0, 0, 0);
+    controls.enableRotate = false; // ล็อคมุมกล้องให้อยู่ใน Top View ตลอดเวลา
 }
 
 function resetGame() {
