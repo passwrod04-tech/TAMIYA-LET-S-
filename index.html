@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya Mini 4WD Builder & Racer - Custom Track</title>
+    <title>Tamiya Mini 4WD Full Custom Builder & Racer</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; user-select: none; }
         #canvas-container { width: 100vw; height: 100vh; }
         
-        /* UI Overlay */
         .ui-panel { position: absolute; z-index: 10; background: rgba(0,0,0,0.85); border: 1px solid #444; border-radius: 8px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #parts-selector { top: 20px; left: 20px; width: 300px; max-height: 80vh; overflow-y: auto; }
+        #parts-selector { top: 20px; left: 20px; width: 320px; max-height: 85vh; overflow-y: auto; }
         #stats-panel { top: 20px; right: 20px; width: 220px; }
         #race-ui { bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; display: none; }
         
         h3 { margin: 0 0 10px 0; color: #ff4444; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .step-title { font-size: 0.9rem; color: #ffca28; margin-bottom: 8px; font-weight: bold; }
-        .item-btn { display: block; width: 100%; padding: 10px; margin: 5px 0; background: #222; border: 1px solid #555; color: white; border-radius: 5px; cursor: pointer; text-align: left; transition: 0.2s; }
+        .step-title { font-size: 0.95rem; color: #ffca28; margin-bottom: 8px; font-weight: bold; }
+        .item-btn { display: block; width: 100%; padding: 8px 10px; margin: 5px 0; background: #222; border: 1px solid #555; color: white; border-radius: 5px; cursor: pointer; text-align: left; transition: 0.2s; }
         .item-btn:hover { background: #e53935; border-color: #ff5252; }
         
         .stat-bar { margin: 6px 0; font-size: 0.85rem; display: flex; justify-content: space-between; }
@@ -75,33 +74,64 @@ container.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// แสงสว่าง
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 const light = new THREE.DirectionalLight(0xffffff, 1.0);
 light.position.set(5, 12, 8);
 scene.add(light);
 
-// Grid พื้นหลัง
 const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
 scene.add(grid);
 
-// --- 2. DATA PARTS & STATS ---
+// --- 2. FULL PARTS DATA (12 STEPS) ---
 const assemblySteps = [
-    { key: 'chassis', name: 'Chassis', items: [
+    { key: 'chassis', name: 'Chassis (แชสซี)', items: [
         { name: 'AR Chassis', speed: 5, accel: 6, weight: 15, stab: 7, color: 0x222222 },
         { name: 'MA Chassis', speed: 6, accel: 7, weight: 18, stab: 8, color: 0x1565c0 },
         { name: 'FM-A Chassis', speed: 6, accel: 8, weight: 16, stab: 6, color: 0xc62828 }
     ]},
-    { key: 'motor', name: 'Motor', items: [
+    { key: 'motor', name: 'Motor (มอเตอร์)', items: [
         { name: 'Atomic-Tuned', speed: 12, accel: 10, weight: 10, stab: 0, color: 0xef6c00 },
         { name: 'Hyper-Dash', speed: 22, accel: 18, weight: 11, stab: -2, color: 0xd84315 },
         { name: 'Mach-Dash', speed: 28, accel: 15, weight: 10, stab: -5, color: 0x1565c0 }
     ]},
-    { key: 'wheels', name: 'Wheels & Tires', items: [
-        { name: 'Small Diameter (High Accel)', speed: 2, accel: 10, weight: 8, stab: 5, color: 0x333333 },
-        { name: 'Large Diameter (High Speed)', speed: 10, accel: 2, weight: 12, stab: 2, color: 0xffb300 }
+    { key: 'gears', name: 'Gear Set (ชุดเฟือง)', items: [
+        { name: 'Standard 4:1 Gear', speed: 4, accel: 8, weight: 2, stab: 0, color: 0xffee58 },
+        { name: 'High Speed 3.5:1 Gear', speed: 8, accel: 4, weight: 2, stab: 0, color: 0x66bb6a }
     ]},
-    { key: 'body', name: 'Body Shell', items: [
+    { key: 'shaft', name: 'Drive Shaft (เพลาขับ)', items: [
+        { name: 'Stock Shaft', speed: 1, accel: 1, weight: 3, stab: 0, color: 0xaaaaaa },
+        { name: 'Hollow Propeller Shaft', speed: 3, accel: 3, weight: 1, stab: 1, color: 0xff4081 }
+    ]},
+    { key: 'bearings', name: 'Bearings (ลูกปืน)', items: [
+        { name: 'Plastic Bushings', speed: 1, accel: 1, weight: 1, stab: 0, color: 0x888888 },
+        { name: 'HG Ball Bearings 620', speed: 6, accel: 5, weight: 3, stab: 2, color: 0x00e676 }
+    ]},
+    { key: 'wheels', name: 'Wheels (แม็ก/ล้อ)', items: [
+        { name: 'Small Dia. Dish Wheels', speed: 2, accel: 8, weight: 6, stab: 4, color: 0xffffff },
+        { name: 'Large Dia. Narrow Wheels', speed: 8, accel: 2, weight: 8, stab: 1, color: 0xffb300 }
+    ]},
+    { key: 'tires', name: 'Tires (ยาง)', items: [
+        { name: 'Super Hard Rubber Tires', speed: 4, accel: 4, weight: 4, stab: 5, color: 0x222222 },
+        { name: 'Maroon Low Friction Tires', speed: 7, accel: 2, weight: 3, stab: 2, color: 0x880e4f }
+    ]},
+    { key: 'plates', name: 'Plates (กันชนแผ่นยึด)', items: [
+        { name: 'Front & Rear FRP Stay', speed: 2, accel: 0, weight: 8, stab: 6, color: 0x37474f },
+        { name: 'Carbon Multi-Reinforcing Plate', speed: 3, accel: 1, weight: 4, stab: 10, color: 0x111111 }
+    ]},
+    { key: 'rollers', name: 'Rollers (ลูกกลิ้ง)', items: [
+        { name: 'Plastic Rollers 13mm', speed: 2, accel: 1, weight: 2, stab: 3, color: 0x00bcd4 },
+        { name: 'Aluminum Ball-Race Rollers 19mm', speed: 6, accel: 3, weight: 5, stab: 9, color: 0xe0e0e0 }
+    ]},
+    { key: 'weights', name: 'Mass Weights (ชุดถ่วงน้ำหนัก)', items: [
+        { name: 'None (ไม่ติดถ่วง)', speed: 2, accel: 2, weight: 0, stab: -2, color: 0x000000 },
+        { name: 'Light Weight Block (6g)', speed: -1, accel: -1, weight: 6, stab: 8, color: 0xffd54f },
+        { name: 'Heavy Mass Damper (12g)', speed: -3, accel: -2, weight: 12, stab: 15, color: 0xb0bec5 }
+    ]},
+    { key: 'damper', name: 'Brake Pad / Damper (แผ่นแบก/เบรก)', items: [
+        { name: 'No Brake', speed: 3, accel: 2, weight: 0, stab: -1, color: 0x000000 },
+        { name: 'Sponge Brake Sponge (Blue)', speed: -1, accel: 0, weight: 1, stab: 8, color: 0x1e88e5 }
+    ]},
+    { key: 'body', name: 'Body Shell (บอดี้)', items: [
         { name: 'Avante Mk.III', speed: 4, accel: 2, weight: 12, stab: 2, color: 0x1976d2 },
         { name: 'Magnum Saber', speed: 3, accel: 1, weight: 14, stab: 4, color: 0xffffff },
         { name: 'Neo-Vanquish', speed: 5, accel: 3, weight: 10, stab: 1, color: 0x388e3c }
@@ -111,7 +141,6 @@ const assemblySteps = [
 let currentStep = 0;
 let carStats = { speed: 0, accel: 0, weight: 0, stab: 0 };
 
-// 3D Object Group ของตัวรถ
 const carGroup = new THREE.Group();
 scene.add(carGroup);
 
@@ -127,7 +156,7 @@ function renderUI() {
         step.items.forEach(item => {
             const btn = document.createElement('button');
             btn.className = 'item-btn';
-            btn.innerHTML = `<strong>${item.name}</strong><br><small>Speed: +${item.speed} | Weight: ${item.weight}g</small>`;
+            btn.innerHTML = `<strong>${item.name}</strong><br><small>Spd:+${item.speed} | Acc:+${item.accel} | Wt:${item.weight}g | Stab:+${item.stab}</small>`;
             btn.onclick = () => selectPart(step.key, item);
             listEl.appendChild(btn);
         });
@@ -163,28 +192,42 @@ function updateCarModel(key, item) {
         carGroup.add(mesh);
     } 
     else if (key === 'motor') {
-        const mGeo = new THREE.BoxGeometry(0.4, 0.25, 0.5);
-        const mMat = new THREE.MeshStandardMaterial({ color: item.color, metalness: 0.5 });
+        const mGeo = new THREE.BoxGeometry(0.35, 0.2, 0.45);
+        const mMat = new THREE.MeshStandardMaterial({ color: item.color, metalness: 0.6 });
         const mMesh = new THREE.Mesh(mGeo, mMat);
         mMesh.position.set(0, 0.25, -0.2);
         carGroup.add(mMesh);
     }
-    else if (key === 'wheels') {
-        const wGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 16);
-        const wMat = new THREE.MeshStandardMaterial({ color: item.color });
-        const wheelPos = [
-            [-0.45, 0.25,  0.5],
-            [ 0.45, 0.25,  0.5],
-            [-0.45, 0.25, -0.5],
-            [ 0.45, 0.25, -0.5]
-        ];
-        wheelPos.forEach(p => {
-            const w = new THREE.Mesh(wGeo, wMat);
-            w.rotation.z = Math.PI / 2;
-            w.position.set(...p);
-            carGroup.add(w);
+    else if (key === 'wheels' || key === 'tires') {
+        if (key === 'wheels') {
+            const wGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 16);
+            const wMat = new THREE.MeshStandardMaterial({ color: item.color });
+            [[-0.45, 0.25, 0.5], [0.45, 0.25, 0.5], [-0.45, 0.25, -0.5], [0.45, 0.25, -0.5]].forEach(p => {
+                const w = new THREE.Mesh(wGeo, wMat);
+                w.rotation.z = Math.PI / 2;
+                w.position.set(...p);
+                carGroup.add(w);
+            });
+        }
+    }
+    else if (key === 'plates') {
+        const pGeo = new THREE.BoxGeometry(1.4, 0.05, 0.2);
+        const pMat = new THREE.MeshStandardMaterial({ color: item.color });
+        const frontPlate = new THREE.Mesh(pGeo, pMat);
+        frontPlate.position.set(0, 0.12, 1.0);
+        const rearPlate = new THREE.Mesh(pGeo, pMat);
+        rearPlate.position.set(0, 0.12, -1.0);
+        carGroup.add(frontPlate, rearPlate);
+    }
+    else if (key === 'rollers') {
+        const rGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 12);
+        const rMat = new THREE.MeshStandardMaterial({ color: item.color, metalness: 0.8 });
+        [[-0.65, 0.2, 1.0], [0.65, 0.2, 1.0], [-0.65, 0.2, -1.0], [0.65, 0.2, -1.0]].forEach(p => {
+            const r = new THREE.Mesh(rGeo, rMat);
+            r.position.set(...p);
+            carGroup.add(r);
         });
-    } 
+    }
     else if (key === 'body') {
         const bGeo = new THREE.BoxGeometry(0.7, 0.25, 1.2);
         const bMat = new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.2, metalness: 0.2 });
@@ -194,7 +237,7 @@ function updateCarModel(key, item) {
     }
 }
 
-// --- 4. TRACK & RACE SYSTEM (ภาพสนามจากต้นฉบับ) ---
+// --- 4. TRACK & RACE SYSTEM ---
 let isRacingMode = false;
 let isRunning = false;
 let progress = 0;
@@ -203,35 +246,27 @@ let startTime = 0;
 let elapsedTime = 0;
 let raceTimer = null;
 
-// พิกัดสนามแข่งขนาดใหญ่ตามรูปภาพ
 const trackPoints = [
-    // ทางตรงด้านหน้า
     new THREE.Vector3(-10, 0,  8),
     new THREE.Vector3(  0, 0,  8),
     new THREE.Vector3( 10, 0,  8),
-    // โค้งขวาใหญ่ขึ้นบน
     new THREE.Vector3( 13, 0,  4),
     new THREE.Vector3( 11, 0, -2),
-    // สลาลม S-Curve ตรงกลาง
     new THREE.Vector3(  5, 0,  0),
     new THREE.Vector3(  0, 0, -3),
     new THREE.Vector3( -5, 0,  0),
-    // โค้งอ้อมไปด้านหลัง
     new THREE.Vector3(-11, 0, -4),
     new THREE.Vector3(-10, 0, -9),
     new THREE.Vector3(  0, 0, -9),
-    // สะพานยกระดับสลับเลนด้านขวาบน
     new THREE.Vector3(  6, 0.0, -9),
-    new THREE.Vector3(  8, 1.5, -8.5), // จุดสูงสุดของสะพาน
+    new THREE.Vector3(  8, 1.5, -8.5),
     new THREE.Vector3( 10, 0.0, -8),
-    // โค้งลูปกลับเข้าจุดเริ่มต้น
     new THREE.Vector3( 12, 0, -4),
     new THREE.Vector3(  8, 0,  3),
     new THREE.Vector3(-12, 0,  4)
 ];
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-// โมเดลราง 3D
 const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.7, 8, false);
 const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3 }));
 trackMesh.scale.set(1, 0.15, 1);
@@ -247,7 +282,6 @@ function startRaceMode() {
     grid.visible = false;
     trackMesh.visible = true;
     
-    // ตั้งค่ามุมกล้องแบบวิวมุมสูงเพื่อให้เห็นทั่วทั้งสนามขนาดใหญ่
     camera.position.set(0, 25, 25);
     controls.target.set(0, 0, 0);
 }
@@ -291,8 +325,7 @@ function animate() {
     requestAnimationFrame(animate);
 
     if (isRacingMode && isRunning) {
-        // ปรับสเกลความเร็วให้สมดุลกับความยาวของสนามใหม่
-        const runSpeed = 0.0006 + (carStats.speed * 0.00008);
+        const runSpeed = 0.0005 + (carStats.speed * 0.00005);
         progress += runSpeed;
 
         if (progress >= 1) {
@@ -305,7 +338,7 @@ function animate() {
                 clearInterval(raceTimer);
                 document.getElementById('btn-run').innerText = "ปล่อยรถอีกครั้ง";
                 document.getElementById('btn-run').style.background = "#e53935";
-                setTimeout(() => alert(`เข้าเส้นชัยแล้ว! เวลาสถิติสนามนี้: ${document.getElementById('timer').innerText}`), 100);
+                setTimeout(() => alert(`เข้าเส้นชัยแล้ว! เวลาทั้งหมด 3 รอบ: ${document.getElementById('timer').innerText}`), 100);
             }
         }
 
