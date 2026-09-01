@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya JCJC Track Simulation - Fixed</title>
+    <title>Tamiya JCJC Track Simulation</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #111; color: white; }
         #canvas-container { width: 100vw; height: 100vh; }
-        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; border: 1px solid #444; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #ff4444; }
-        p { margin: 0 0 15px 0; font-size: 0.85rem; color: #ccc; }
-        button { background: #e53935; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.8); padding: 15px 20px; border-radius: 8px; border: 1px solid #444; }
+        h2 { margin: 0 0 5px 0; font-size: 1.1rem; color: #ff4444; }
+        p { margin: 0 0 10px 0; font-size: 0.8rem; color: #ccc; }
+        button { background: #e53935; color: white; border: none; padding: 10px 18px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         button:hover { background: #ff5252; }
     </style>
-    
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -21,20 +20,20 @@
 
     <div id="ui">
         <h2>Tamiya JCJC Track 3D</h2>
-        <p>สนามมาตรฐาน 3 เลน + สะพานยกระดับสลับเลน</p>
-        <button onclick="toggleRace()" id="race-btn">ปล่อยรถแข่ง / หยุด</button>
+        <p>ระบบจำลองสนามและรถแข่งแบบเสถียร</p>
+        <button onclick="toggleRace()">ปล่อยรถแข่ง / หยุด</button>
     </div>
 
     <div id="canvas-container"></div>
 
 <script>
-// --- 1. Setup Scene, Camera, Renderer ---
+// --- 1. Scene & Camera Setup ---
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1a);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 20, 25);
+camera.position.set(0, 18, 22);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -43,35 +42,24 @@ container.appendChild(renderer.domElement);
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.set(0, 0, 0);
 
-// แสงสว่าง
-scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-const light = new THREE.DirectionalLight(0xffffff, 0.9);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const light = new THREE.DirectionalLight(0xffffff, 0.8);
 light.position.set(10, 20, 10);
 scene.add(light);
 
-// Grid พื้นหลัง
-const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
-scene.add(grid);
+scene.add(new THREE.GridHelper(30, 30, 0x444444, 0x222222));
 
-// --- 2. พิกัดเส้นทางสนาม (Track Path) ---
+// --- 2. Track Path (พิกัดสนาม JCJC) ---
 const trackPoints = [
-    // โค้งขวา (ฝั่งน้ำเงิน)
     new THREE.Vector3( 4, 0,  6),
     new THREE.Vector3( 7, 0,  0),
     new THREE.Vector3( 4, 0, -6),
-
-    // ทางตรงช่วงบน
     new THREE.Vector3( 1, 0, -6),
     new THREE.Vector3(-1, 0, -6),
-
-    // โค้งซ้าย (ฝั่งแดง)
     new THREE.Vector3(-4, 0, -6),
     new THREE.Vector3(-7, 0,  0),
     new THREE.Vector3(-4, 0,  6),
-
-    // ทางตรงช่วงล่าง + สะพานสลับเลน
     new THREE.Vector3(-2.5, 0,   6),
     new THREE.Vector3(-1.0, 1.2, 5.7),
     new THREE.Vector3( 0.0, 1.2, 6.0),
@@ -81,81 +69,56 @@ const trackPoints = [
 
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-// --- 3. สร้างแผ่นพื้นราง 3D (คำนวณเอียงตามความชันสะพาน) ---
-const trackSegments = 300;
-const trackWidth = 1.6;
-const trackGeometry = new THREE.BufferGeometry();
-const positions = [];
-const indices = [];
+// --- 3. Track Visualization (สร้างตัวรางด้วยวิธีที่เรียบง่ายที่สุด) ---
+const points = trackCurve.getPoints(200);
+const trackGroup = new THREE.Group();
 
-// ดึง Frenet Frames เพื่อหา Normal/Binormal ของรางที่ถูกต้อง
-const frenzyFrames = trackCurve.computeFrenetFrames(trackSegments, true);
+// สร้างพื้นรางตรงกลาง
+const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+const lineMat = new THREE.LineBasicMaterial({ color: 0xff4444, linewidth: 2 });
+const centerLine = new THREE.Line(lineGeo, lineMat);
+trackGroup.add(centerLine);
 
-for (let i = 0; i <= trackSegments; i++) {
-    const u = i / trackSegments;
-    const pt = trackCurve.getPointAt(u);
-    const binormal = frenzyFrames.binormals[i % trackSegments];
-    
-    // คำนวณขอบซ้าย-ขวา โดยใช้อ้างอิงตาม Binormal ของ Curve
-    const side = binormal.clone().multiplyScalar(trackWidth / 2);
-    
-    positions.push(pt.x + side.x, pt.y + side.y, pt.z + side.z);
-    positions.push(pt.x - side.x, pt.y - side.y, pt.z - side.z);
+// สร้างฐานรองรางทรงกระบอกเรียบๆ ตามจุดวิ่ง
+const tubeGeo = new THREE.TubeGeometry(trackCurve, 150, 0.6, 8, false);
+const tubeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, wireframe: false, roughness: 0.6 });
+const trackMesh = new THREE.Mesh(tubeGeo, tubeMat);
+trackMesh.scale.set(1, 0.2, 1); // บีบความสูงให้แบนเป็นแผ่น
+trackGroup.add(trackMesh);
 
-    if (i < trackSegments) {
-        const base = i * 2;
-        indices.push(base, base + 1, base + 2);
-        indices.push(base + 1, base + 3, base + 2);
-    }
-}
+scene.add(trackGroup);
 
-trackGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-trackGeometry.setIndex(indices);
-trackGeometry.computeVertexNormals();
-
-const trackMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xdddddd, 
-    side: THREE.DoubleSide, 
-    roughness: 0.5 
-});
-const trackMesh = new THREE.Mesh(trackGeometry, trackMaterial);
-scene.add(trackMesh);
-
-// --- 4. สร้างตัวรถ Tamiya (จัดGroupให้มุ่งหน้าถูกต้อง) ---
+// --- 4. Car Construction ---
 const carGroup = new THREE.Group();
-const carModel = new THREE.Group(); // Sub-group สำหรับปรับแก้ Direction
 
-// บอดี้รถ
+// ตัวบอดี้รถ
 const bodyGeo = new THREE.BoxGeometry(0.7, 0.25, 1.2);
-const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, metalness: 0.2, roughness: 0.3 });
+const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, roughness: 0.2 });
 const body = new THREE.Mesh(bodyGeo, bodyMat);
 body.position.y = 0.2;
-carModel.add(body);
+carGroup.add(body);
 
 // ล้อรถ 4 ล้อ
 const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 16);
 const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
 
-const wheelPos = [
+const wheelPositions = [
     [-0.4, 0.18,  0.35],
     [ 0.4, 0.18,  0.35],
     [-0.4, 0.18, -0.35],
     [ 0.4, 0.18, -0.35]
 ];
 
-wheelPos.forEach(p => {
-    const w = new THREE.Mesh(wheelGeo, wheelMat);
-    w.rotation.z = Math.PI / 2;
-    w.position.set(...p);
-    carModel.add(w);
+wheelPositions.forEach(pos => {
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(...pos);
+    carGroup.add(wheel);
 });
 
-// หมุน 180 องศาเพื่อแก้ปัญหาเดินหน้า-ถอยหลัง
-carModel.rotation.y = Math.PI; 
-carGroup.add(carModel);
 scene.add(carGroup);
 
-// --- 5. ระบบขับเคลื่อนรถตามเส้นทาง ---
+// --- 5. Movement Logic ---
 let progress = 0;
 let isRacing = false;
 const speed = 0.0025;
@@ -169,17 +132,19 @@ function animate() {
 
     if (isRacing) {
         progress += speed;
-        if (progress > 1) progress -= 1;
+        if (progress >= 1) progress = 0;
 
-        // ดึงตำแหน่งปัจจุบันและตำแหน่งถัดไปบน Curve
-        const currentPos = trackCurve.getPointAt(progress);
-        const futurePos = trackCurve.getPointAt((progress + 0.003) % 1);
+        // ดึงจุดปัจจุบันและจุดถัดไป
+        const p1 = trackCurve.getPointAt(progress);
+        const p2 = trackCurve.getPointAt((progress + 0.004) % 1);
 
-        // ยกระดับตำแหน่งรถให้ล้อแตะบนพื้นรางพอดี
-        carGroup.position.set(currentPos.x, currentPos.y + 0.02, currentPos.z);
-        
-        // หันหน้ารถไปยังพิกัดถัดไป
-        carGroup.lookAt(futurePos.x, futurePos.y + 0.02, futurePos.z);
+        // วางตำแหน่งรถ
+        carGroup.position.set(p1.x, p1.y + 0.12, p1.z);
+
+        // บังคับทิศทางหน้ารถให้มุ่งหน้าไปจุด p2 (กลับทิศทาง p1-p2 เพื่อแก้ปัญหารถถอยหลัง)
+        const target = new THREE.Vector3().subVectors(p1, p2).add(p1);
+        target.y = p1.y + 0.12;
+        carGroup.lookAt(target);
     }
 
     controls.update();
