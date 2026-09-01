@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya JCJC Track Simulation - Fixed</title>
+    <title>Tamiya JCJC Track Simulation - Perfect Version</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; }
         #canvas-container { width: 100vw; height: 100vh; }
         #ui { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; border: 1px solid #444; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #ff4444; }
         p { margin: 0 0 15px 0; font-size: 0.85rem; color: #ccc; }
-        button { background: #e53935; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button { background: #e53935; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
         button:hover { background: #ff5252; }
     </style>
     
@@ -21,20 +21,20 @@
 
     <div id="ui">
         <h2>Tamiya JCJC Track 3D</h2>
-        <p>สนามมาตรฐาน 3 เลน + สะพานสลับเลนยกระดับ</p>
+        <p>สนามมาตรฐาน 3 เลน + สะพานยกระดับสลับเลน</p>
         <button onclick="toggleRace()" id="race-btn">ปล่อยรถแข่ง / หยุด</button>
     </div>
 
     <div id="canvas-container"></div>
 
 <script>
-// --- 1. ตั้งค่า Scene / Camera / Renderer ---
+// --- 1. Setup Scene, Camera, Renderer ---
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1a);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 20, 22);
+camera.position.set(0, 20, 25);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -47,17 +47,17 @@ controls.target.set(0, 0, 0);
 
 // แสงสว่าง
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-const light = new THREE.DirectionalLight(0xffffff, 0.8);
-light.position.set(10, 25, 10);
+const light = new THREE.DirectionalLight(0xffffff, 0.9);
+light.position.set(10, 20, 10);
 scene.add(light);
 
 // Grid พื้นหลัง
 const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
 scene.add(grid);
 
-// --- 2. ถอดพิกัดสนาม JCJC ---
+// --- 2. พิกัดเส้นทางสนาม (Track Path) ---
 const trackPoints = [
-    // โค้งฝั่งน้ำเงิน
+    // โค้งขวา (ฝั่งน้ำเงิน)
     new THREE.Vector3( 4, 0,  6),
     new THREE.Vector3( 7, 0,  0),
     new THREE.Vector3( 4, 0, -6),
@@ -66,34 +66,64 @@ const trackPoints = [
     new THREE.Vector3( 1, 0, -6),
     new THREE.Vector3(-1, 0, -6),
 
-    // โค้งฝั่งแดง
+    // โค้งซ้าย (ฝั่งแดง)
     new THREE.Vector3(-4, 0, -6),
     new THREE.Vector3(-7, 0,  0),
     new THREE.Vector3(-4, 0,  6),
 
-    // ทางตรงช่วงล่าง + สะพานยกระดับสลับเลน
+    // ทางตรงช่วงล่าง + สะพานสลับเลน
     new THREE.Vector3(-2.5, 0,   6),
-    new THREE.Vector3(-1.0, 1.2, 5.5),
+    new THREE.Vector3(-1.0, 1.2, 5.7),
     new THREE.Vector3( 0.0, 1.2, 6.0),
-    new THREE.Vector3( 1.0, 1.2, 6.5),
+    new THREE.Vector3( 1.0, 1.2, 6.3),
     new THREE.Vector3( 2.5, 0,   6)
 ];
 
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-// --- 3. สร้างโมเดลราง 3D ---
-const tubeGeo = new THREE.TubeGeometry(trackCurve, 300, 0.8, 8, false);
-const trackMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.3 });
-const trackMesh = new THREE.Mesh(tubeGeo, trackMat);
-trackMesh.scale.set(1, 0.1, 1);
+// --- 3. สร้างแผ่นพื้นราง 3D (Ribbon Track Geometry) ---
+const trackSegments = 200;
+const trackWidth = 1.6;
+const trackGeometry = new THREE.BufferGeometry();
+const positions = [];
+const indices = [];
+
+for (let i = 0; i <= trackSegments; i++) {
+    const t = i / trackSegments;
+    const pt = trackCurve.getPointAt(t);
+    const tan = trackCurve.getTangentAt(t);
+    
+    // เวกเตอร์ตั้งฉากเพื่อขยายเป็นความกว้างราง
+    const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize().multiplyScalar(trackWidth / 2);
+    
+    positions.push(pt.x + side.x, pt.y, pt.z + side.z);
+    positions.push(pt.x - side.x, pt.y, pt.z - side.z);
+
+    if (i < trackSegments) {
+        const base = i * 2;
+        indices.push(base, base + 1, base + 2);
+        indices.push(base + 1, base + 3, base + 2);
+    }
+}
+
+trackGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+trackGeometry.setIndex(indices);
+trackGeometry.computeVertexNormals();
+
+const trackMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xdddddd, 
+    side: THREE.DoubleSide, 
+    roughness: 0.5 
+});
+const trackMesh = new THREE.Mesh(trackGeometry, trackMaterial);
 scene.add(trackMesh);
 
-// --- 4. สร้างโมเดลรถแข่ง Tamiya ---
+// --- 4. สร้างตัวรถ Tamiya ---
 const carGroup = new THREE.Group();
 
-// ตัวรถ
+// บอดี้รถ
 const bodyGeo = new THREE.BoxGeometry(0.7, 0.25, 1.2);
-const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, metalness: 0.4, roughness: 0.2 });
+const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, metalness: 0.2, roughness: 0.3 });
 const body = new THREE.Mesh(bodyGeo, bodyMat);
 body.position.y = 0.2;
 carGroup.add(body);
@@ -118,38 +148,31 @@ wheelPos.forEach(p => {
 
 scene.add(carGroup);
 
-// --- 5. ระบบคำนวณตำแหน่งและองศาหมุนรถ (แก้ไขการหมุนด้วย Quaternion) ---
+// --- 5. ระบบขับเคลื่อนรถตามเส้นทาง ---
 let progress = 0;
 let isRacing = false;
-const speed = 0.002;
+const speed = 0.0025;
 
 function toggleRace() {
     isRacing = !isRacing;
 }
-
-const positionVec = new THREE.Vector3();
-const tangentVec = new THREE.Vector3();
-const forwardVec = new THREE.Vector3(0, 0, -1); // ทิศทางหน้ารถอ้างอิงใน Local Space
-const carQuaternion = new THREE.Quaternion();
 
 function animate() {
     requestAnimationFrame(animate);
 
     if (isRacing) {
         progress += speed;
-        if (progress > 1) progress = 0;
+        if (progress > 1) progress -= 1;
 
-        // 1. ดึงค่าตำแหน่งและทิศทางจาก Curve
-        trackCurve.getPointAt(progress, positionVec);
-        trackCurve.getTangentAt(progress, tangentVec);
+        // คำนวณตำแหน่งปัจจุบัน และตำแหน่งข้างหน้าเล็กน้อยเพื่อวางทิศทางหน้ารถ
+        const currentPos = trackCurve.getPointAt(progress);
+        const futurePos = trackCurve.getPointAt((progress + 0.005) % 1);
 
-        // 2. ปรับระยะความสูงให้อยู่บนรางพอดี
-        positionVec.y += 0.08;
-        carGroup.position.copy(positionVec);
-
-        // 3. คำนวณ Quaternion เพื่อหันหน้ารถไปตาม Tangent โดยไม่เกิดค่า NaN
-        carQuaternion.setFromUnitVectors(forwardVec, tangentVec.normalize());
-        carGroup.quaternion.copy(carQuaternion);
+        // วางรถสูงจากแผ่นรางเล็กน้อย
+        carGroup.position.set(currentPos.x, currentPos.y + 0.05, currentPos.z);
+        
+        // หันหน้ารถไปยังจุดถัดไปบนราง
+        carGroup.lookAt(futurePos.x, futurePos.y + 0.05, futurePos.z);
     }
 
     controls.update();
@@ -162,6 +185,7 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// เริ่มทำงาน
 animate();
 </script>
 </body>
