@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiya Mini 4WD Builder & Racer - Fixed</title>
+    <title>Tamiya Mini 4WD Builder & Racer - Custom Track</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #111; color: white; user-select: none; }
         #canvas-container { width: 100vw; height: 100vh; }
@@ -82,7 +82,7 @@ light.position.set(5, 12, 8);
 scene.add(light);
 
 // Grid พื้นหลัง
-const grid = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
 scene.add(grid);
 
 // --- 2. DATA PARTS & STATS ---
@@ -194,7 +194,7 @@ function updateCarModel(key, item) {
     }
 }
 
-// --- 4. TRACK & RACE SYSTEM ---
+// --- 4. TRACK & RACE SYSTEM (ภาพสนามจากต้นฉบับ) ---
 let isRacingMode = false;
 let isRunning = false;
 let progress = 0;
@@ -203,24 +203,37 @@ let startTime = 0;
 let elapsedTime = 0;
 let raceTimer = null;
 
-// พิกัดสนามแข่ง (JCJC Track)
+// พิกัดสนามแข่งขนาดใหญ่ตามรูปภาพ
 const trackPoints = [
-    new THREE.Vector3( 4, 0,   6),
-    new THREE.Vector3( 7, 0,   0),
-    new THREE.Vector3( 4, 0,  -6),
-    new THREE.Vector3(-4, 0,  -6),
-    new THREE.Vector3(-7, 0,   0),
-    new THREE.Vector3(-4, 0,   6),
-    new THREE.Vector3(-1.0, 1.2, 5.7), // จุดเริ่มขึ้นสะพาน
-    new THREE.Vector3( 0.0, 1.2, 6.0), // บนสะพาน
-    new THREE.Vector3( 1.0, 1.2, 6.3), // จุดลงสะพาน
-    new THREE.Vector3( 2.5, 0,   6)
+    // ทางตรงด้านหน้า
+    new THREE.Vector3(-10, 0,  8),
+    new THREE.Vector3(  0, 0,  8),
+    new THREE.Vector3( 10, 0,  8),
+    // โค้งขวาใหญ่ขึ้นบน
+    new THREE.Vector3( 13, 0,  4),
+    new THREE.Vector3( 11, 0, -2),
+    // สลาลม S-Curve ตรงกลาง
+    new THREE.Vector3(  5, 0,  0),
+    new THREE.Vector3(  0, 0, -3),
+    new THREE.Vector3( -5, 0,  0),
+    // โค้งอ้อมไปด้านหลัง
+    new THREE.Vector3(-11, 0, -4),
+    new THREE.Vector3(-10, 0, -9),
+    new THREE.Vector3(  0, 0, -9),
+    // สะพานยกระดับสลับเลนด้านขวาบน
+    new THREE.Vector3(  6, 0.0, -9),
+    new THREE.Vector3(  8, 1.5, -8.5), // จุดสูงสุดของสะพาน
+    new THREE.Vector3( 10, 0.0, -8),
+    // โค้งลูปกลับเข้าจุดเริ่มต้น
+    new THREE.Vector3( 12, 0, -4),
+    new THREE.Vector3(  8, 0,  3),
+    new THREE.Vector3(-12, 0,  4)
 ];
 const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'centripetal');
 
-// โมเดลราง
-const tubeGeo = new THREE.TubeGeometry(trackCurve, 300, 0.7, 8, false);
-const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.4 }));
+// โมเดลราง 3D
+const tubeGeo = new THREE.TubeGeometry(trackCurve, 400, 0.7, 8, false);
+const trackMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3 }));
 trackMesh.scale.set(1, 0.15, 1);
 trackMesh.visible = false;
 scene.add(trackMesh);
@@ -234,8 +247,8 @@ function startRaceMode() {
     grid.visible = false;
     trackMesh.visible = true;
     
-    // ตั้งค่าตำแหน่งกล้องส่องสนาม
-    camera.position.set(0, 16, 20);
+    // ตั้งค่ามุมกล้องแบบวิวมุมสูงเพื่อให้เห็นทั่วทั้งสนามขนาดใหญ่
+    camera.position.set(0, 25, 25);
     controls.target.set(0, 0, 0);
 }
 
@@ -278,8 +291,8 @@ function animate() {
     requestAnimationFrame(animate);
 
     if (isRacingMode && isRunning) {
-        // คำนวณความเร็วตามค่า Speed ที่ผู้เล่นเลือก
-        const runSpeed = 0.001 + (carStats.speed * 0.0001);
+        // ปรับสเกลความเร็วให้สมดุลกับความยาวของสนามใหม่
+        const runSpeed = 0.0006 + (carStats.speed * 0.00008);
         progress += runSpeed;
 
         if (progress >= 1) {
@@ -292,13 +305,12 @@ function animate() {
                 clearInterval(raceTimer);
                 document.getElementById('btn-run').innerText = "ปล่อยรถอีกครั้ง";
                 document.getElementById('btn-run').style.background = "#e53935";
-                setTimeout(() => alert(`เข้าเส้นชัยแล้ว! เวลาสถิติ: ${document.getElementById('timer').innerText}`), 100);
+                setTimeout(() => alert(`เข้าเส้นชัยแล้ว! เวลาสถิติสนามนี้: ${document.getElementById('timer').innerText}`), 100);
             }
         }
 
-        // ป้องกันรถพลิกควงเวลามุ่งหน้าไปตามราง
         trackCurve.getPointAt(progress, currentPos);
-        trackCurve.getPointAt((progress + 0.005) % 1, targetPos);
+        trackCurve.getPointAt((progress + 0.003) % 1, targetPos);
 
         currentPos.y += 0.12;
         targetPos.y += 0.12;
